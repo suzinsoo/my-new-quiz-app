@@ -712,7 +712,7 @@ const App = () => {
                                             // 현재 질문에 답변했을 때만 다음으로 넘어가도록
                                             if (testTakerAnswers.hasOwnProperty(currentQuestionIndex)) {
                                                 setError(''); // 오류 메시지 초기화
-                                                setCurrentQuestionIndex(prev => prev + 0); // 다음 질문으로 이동
+                                                setCurrentQuestionIndex(prev => prev + 1); // <-- 여기를 prev + 1로 수정
                                             } else {
                                                 setError('현재 질문에 답변을 선택해주세요.');
                                             }
