@@ -247,7 +247,7 @@ const App = () => {
         fetchQuizData();
     }, [appMode, currentTestId, db, isAuthReady, userId, appId]); // userId, appId를 의존성 배열에 추가
 
-    // 퀴즈 생성 함수 (Gemini API 직접 호출 및 Firestore 저장)
+    // 퀴즈 생성 함수 (서버리스 API 호출 및 Firestore 저장)
     const generateQuiz = async () => {
         // 입력 유효성 검사
         if (!quizCreatorName.trim()) { // 이름 입력 필수
@@ -304,13 +304,12 @@ const App = () => {
                 }
             };
 
-            // Canvas 환경에서 직접 Gemini API를 호출합니다.
-            // Vercel 배포 시에는 이 부분을 서버리스 엔드포인트('/api/generate-quiz') 호출로 변경해야 합니다.
-            const apiKey = ""; // Canvas에서 자동으로 API 키를 주입합니다.
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            // 서버리스 함수 호출
+            // Vercel에 배포 시 이 경로는 Vercel 프로젝트 내의 서버리스 함수를 호출합니다.
+            const apiUrl = '/api/generate-quiz'; 
 
-            console.log("Gemini API: Fetching quiz with prompt:", prompt); // API 호출 전 로그
-            console.log("Gemini API: Payload:", payload); // API 호출 페이로드 로그
+            console.log("Serverless Function API: Fetching quiz with prompt:", prompt); // API 호출 전 로그
+            console.log("Serverless Function API: Payload:", payload); // API 호출 페이로드 로그
 
             const response = await fetch(apiUrl, {
                 method: 'POST',
@@ -318,22 +317,24 @@ const App = () => {
                 body: JSON.stringify(payload)
             });
 
-            console.log("Gemini API: Response received. Status:", response.status, response.statusText); // API 응답 상태 로그
+            console.log("Serverless Function API: Response received. Status:", response.status, response.statusText); // API 응답 상태 로그
 
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error("Gemini API: HTTP Error details:", errorData); // HTTP 오류 상세 로그
+                console.error("Serverless Function API: HTTP Error details:", errorData); // HTTP 오류 상세 로그
+                // 서버리스 함수에서 발생한 오류 메시지를 사용자에게 보여줍니다.
                 throw new Error(`HTTP error! Status: ${response.status} - ${errorData.error?.message || response.statusText}`);
             }
 
             const result = await response.json();
-            console.log("Gemini API: Raw result:", result); // API 원본 결과 로그
+            console.log("Serverless Function API: Raw result:", result); // API 원본 결과 로그
 
+            // 서버리스 함수가 Gemini API의 결과를 그대로 반환한다고 가정합니다.
             if (result.candidates && result.candidates.length > 0 &&
                 result.candidates[0].content && result.candidates[0].content.parts &&
                 result.candidates[0].content.parts.length > 0) {
                 const jsonText = result.candidates[0].content.parts[0].text;
-                console.log("Gemini API: Raw JSON text from response:", jsonText); // JSON 텍스트 로그
+                console.log("Serverless Function API: Raw JSON text from response:", jsonText); // JSON 텍스트 로그
                 const parsedQuiz = JSON.parse(jsonText);
 
                 // 생성된 퀴즈가 10개 질문을 포함하고 올바른 형식인지 검증
@@ -361,11 +362,11 @@ const App = () => {
                     console.log("Shareable link generated:", `${currentBaseUrl}?testId=${newTestId}`);
                 } else {
                     setError('퀴즈 생성에 실패했습니다. 예상된 형식의 10개 질문을 받지 못했습니다. 다시 시도해 주세요.');
-                    console.log("Gemini API: Parsed quiz format mismatch:", parsedQuiz); // Debug log
+                    console.log("Serverless Function API: Parsed quiz format mismatch:", parsedQuiz); // Debug log
                 }
             } else {
                 setError('퀴즈 생성에 실패했습니다. 유효한 응답을 받지 못했습니다.');
-                console.log("Gemini API: No valid candidates found in response."); // Debug log
+                console.log("Serverless Function API: No valid candidates found in response."); // Debug log
             }
         } catch (err) {
             console.error("퀴즈 생성 중 오류 발생:", err);
@@ -762,7 +763,7 @@ const App = () => {
                                     >
                                         <svg className="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                             <path d="M16 1H4C2.9 1 2 1.9 2 3v14h2V3h12V1zm3 4H8C6.9 5 6 5.9 6 7v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path>
-                                        </svg>
+                                    </svg>
                                         링크 복사
                                     </button>
                                 </div>
