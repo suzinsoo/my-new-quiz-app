@@ -68,13 +68,13 @@ const App = () => {
     // **참고: Canvas 환경에서는 __firebase_config 전역 변수를 통해 자동으로 주입됩니다.
     // Canvas 외부에서 배포 시에는 이 값을 사용하거나, 환경 변수로 관리하는 것을 권장합니다.**
     const userProvidedFirebaseConfig = {
-        apiKey: "AIzaSyCJeYdNBcZNecAmPK3wnx9n6JMWVNNvDN4",
-        authDomain: "suzinsoo-test.firebaseapp.com",
-        projectId: "suzinsoo-test",
-        storageBucket: "suzinsoo-test.firebasestorage.app",
-        messagingSenderId: "276570466094",
-        appId: "1:276570466094:web:854d384f32b57870db3cbf",
-        measurementId: "G-4BCQJR91P0"
+  apiKey: "AIzaSyB_I98alPy-nWuOxD6dHgtq6JgnUgoze5Q",
+  authDomain: "my-new-quiz-app-941ab.firebaseapp.com",
+  projectId: "my-new-quiz-app-941ab",
+  storageBucket: "my-new-quiz-app-941ab.firebasestorage.app",
+  messagingSenderId: "650675412112",
+  appId: "1:650675412112:web:274b95ded1af3565be8c15",
+  measurementId: "G-LE1STLTWVM"
     };
 
     // Canvas 환경에서 제공되는 전역 변수를 우선적으로 사용하고, 없으면 사용자 제공 값 사용
