@@ -1,0 +1,13 @@
+@import url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff');
+@import url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansBold.woff');
+@import url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansLight.woff');
+
+/* 기존 @tailwind 지시문은 이 아래에 있어야 합니다. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 앱 전체에 Gmarket Sans를 기본 폰트로 적용 */
+body {
+  font-family: 'Gmarket Sans', sans-serif;
+}
