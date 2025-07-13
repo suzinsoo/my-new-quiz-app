@@ -247,7 +247,7 @@ const App = () => {
         fetchQuizData();
     }, [appMode, currentTestId, db, isAuthReady, userId, appId]); // userId, appId를 의존성 배열에 추가
 
-    // 퀴즈 생성 함수 (Gemini API 호출 및 Firestore 저장)
+    // 퀴즈 생성 함수 (Gemini API 직접 호출 및 Firestore 저장)
     const generateQuiz = async () => {
         // 입력 유효성 검사
         if (!quizCreatorName.trim()) { // 이름 입력 필수
@@ -304,37 +304,35 @@ const App = () => {
                 }
             };
 
-            // 서버리스 함수 호출
-            // Vercel/Netlify 등에서 배포 시 이 경로에 Gemini API를 호출하는 서버리스 함수를 두어야 합니다.
-            const apiUrl = '/api/generate-quiz'; 
+            // Gemini API 직접 호출 (Canvas 환경에서 사용)
+            const apiKey = ""; // Canvas에서 자동으로 API 키를 주입합니다.
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
-            console.log("Serverless Function API: Fetching quiz with prompt:", prompt); // API 호출 전 로그
-            console.log("Serverless Function API: Payload:", payload); // API 호출 페이로드 로그
+            console.log("Gemini API: Fetching quiz with prompt:", prompt); // API 호출 전 로그
+            console.log("Gemini API: Payload:", payload); // API 호출 페이로드 로그
 
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload) // 서버리스 함수로 페이로드 전달
+                body: JSON.stringify(payload)
             });
 
-            console.log("Serverless Function API: Response received. Status:", response.status, response.statusText); // API 응답 상태 로그
+            console.log("Gemini API: Response received. Status:", response.status, response.statusText); // API 응답 상태 로그
 
-            // HTTP 오류 발생 시 처리
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error("Serverless Function API: HTTP Error details:", errorData); // HTTP 오류 상세 로그
+                console.error("Gemini API: HTTP Error details:", errorData); // HTTP 오류 상세 로그
                 throw new Error(`HTTP error! Status: ${response.status} - ${errorData.error?.message || response.statusText}`);
             }
 
             const result = await response.json();
-            console.log("Serverless Function API: Raw result:", result); // API 원본 결과 로그
+            console.log("Gemini API: Raw result:", result); // API 원본 결과 로그
 
-            // 서버리스 함수가 Gemini API의 결과를 그대로 반환한다고 가정합니다.
             if (result.candidates && result.candidates.length > 0 &&
                 result.candidates[0].content && result.candidates[0].content.parts &&
                 result.candidates[0].content.parts.length > 0) {
                 const jsonText = result.candidates[0].content.parts[0].text;
-                console.log("Serverless Function API: Raw JSON text from response:", jsonText); // JSON 텍스트 로그
+                console.log("Gemini API: Raw JSON text from response:", jsonText); // JSON 텍스트 로그
                 const parsedQuiz = JSON.parse(jsonText);
 
                 // 생성된 퀴즈가 10개 질문을 포함하고 올바른 형식인지 검증
@@ -362,11 +360,11 @@ const App = () => {
                     console.log("Shareable link generated:", `${currentBaseUrl}?testId=${newTestId}`);
                 } else {
                     setError('퀴즈 생성에 실패했습니다. 예상된 형식의 10개 질문을 받지 못했습니다. 다시 시도해 주세요.');
-                    console.log("Serverless Function API: Parsed quiz format mismatch:", parsedQuiz); // Debug log
+                    console.log("Gemini API: Parsed quiz format mismatch:", parsedQuiz); // Debug log
                 }
             } else {
                 setError('퀴즈 생성에 실패했습니다. 유효한 응답을 받지 못했습니다.');
-                console.log("Serverless Function API: No valid candidates found in response."); // Debug log
+                console.log("Gemini API: No valid candidates found in response."); // Debug log
             }
         } catch (err) {
             console.error("퀴즈 생성 중 오류 발생:", err);
@@ -390,10 +388,7 @@ const App = () => {
 
     // 궁합 점수 계산
     const calculateCompatibility = useCallback(() => {
-        console.log("calculateCompatibility called.");
-        console.log("Current testTakerAnswers:", testTakerAnswers);
-        console.log("Generated quiz length:", generatedQuiz.length);
-
+        console.log("Calculating compatibility...");
         // 모든 질문에 답변했는지 확인
         if (Object.keys(testTakerAnswers).length !== generatedQuiz.length) {
             setError('모든 질문에 답변해주세요.');
@@ -404,13 +399,15 @@ const App = () => {
         let correctAnswers = 0;
         // 정답과 사용자의 답변 비교하여 점수 계산
         generatedQuiz.forEach((quizItem, index) => {
-            console.log(`Q${index + 1}: User answer: ${testTakerAnswers[index]}, Correct answer: ${quizItem.compatibleAnswer}`); // Debug log
-            if (testTakerAnswers[index] === quizItem.compatibleAnswer) {
+            const userAnswer = testTakerAnswers[index];
+            const correctAnswer = quizItem.compatibleAnswer;
+            console.log(`Q${index + 1}: User answer: ${userAnswer}, Correct answer: ${correctAnswer}. Match: ${userAnswer === correctAnswer}`);
+            if (userAnswer === correctAnswer) {
                 correctAnswers++;
             }
         });
 
-        console.log("Correct answers count:", correctAnswers); // Debug log
+        console.log("Total correct answers:", correctAnswers);
 
         let score = 0;
         if (correctAnswers === 0) {
@@ -425,7 +422,7 @@ const App = () => {
         }
 
         setCompatibilityScore(score);
-        console.log("Calculated score:", score); // Debug log
+        console.log("Final calculated score:", score);
 
         // 점수에 따른 궁합 메시지 설정
         let message = '';
@@ -441,9 +438,11 @@ const App = () => {
             message = '극과 극의 궁합. 색다른 경험을 할 수도 있지만, 많은 노력이 필요할 수 있습니다.';
         }
         setCompatibilityMessage(message);
-        console.log("Compatibility message:", message); // Debug log
-        setShowResultModal(true); // 결과 모달 표시
-        console.log("setShowResultModal(true) called."); // Debug log
+        console.log("Final compatibility message:", message);
+
+        console.log("Attempting to show result modal...");
+        setShowResultModal(true);
+        console.log("setShowResultModal(true) called.");
     }, [generatedQuiz, testTakerAnswers]);
 
     // 결과 모달 닫기
@@ -467,6 +466,19 @@ const App = () => {
             console.log("Share link copied to clipboard:", shareableLink); // Debug log
         }
     }, [shareableLink]);
+
+    // 새로운 테스트 만들기 (모든 상태 초기화 후 create 모드로)
+    const createNewTest = useCallback(() => {
+        setAppMode('create');
+        setPersonalityDescription('');
+        setGeneratedQuiz([]);
+        setTestTakerAnswers({});
+        setCompatibilityScore(null);
+        setCompatibilityMessage('');
+        setShareableLink('');
+        setQuizCreatorName(''); // 이름 초기화
+        setCurrentQuestionIndex(0); // 질문 인덱스 초기화
+    }, []);
 
     // 모달 컴포넌트
     const Modal = ({ children, onClose }) => (
@@ -531,7 +543,7 @@ const App = () => {
                                 </div>
 
                                 {/* 메인 타이틀 이미지 (사용자님이 제공한 이미지) */}
-                                <img src="https://i.ibb.co/Y4r7R0Df/001-8.jpg" alt="나를 맞춰봐 TEST" className="w-full h-auto mx-auto mb-4 object-contain" />
+                                <img src="https://i.ibb.co/qM7wL9Zd/001-9.jpg" alt="나를 맞춰봐 TEST" className="w-full h-auto mx-auto mb-4 object-contain" />
                             </div>
 
                             <p className="text-lg text-center text-gray-700 mb-6">
@@ -545,8 +557,9 @@ const App = () => {
                                 placeholder="예: 수진"
                                 maxLength={20}
                             />
+                            {/* GPT에게 문구를 밖으로 빼내어 강조 (줄 바꿈 없이) */}
                             <p className="text-lg text-center text-gray-700 mb-6">
-                                <span className="font-bold text-[#DB4455]">🖤GPT에게 내 성격과 성향, 좋아하는 거 싫어하는 걸 구분해서 1000자 내외로 분석해줘🖤</span>라고 요청한 후, 그 내용을 여기에 붙여넣어 주세요. 이 내용을 바탕으로 당신에 대한 퀴즈가 생성됩니다.
+                                <span className="font-bold text-black">GPT에게</span> <span className="font-bold text-[#DB4455]">🖤내 성격과 성향, 좋아하는 거 싫어하는 걸 구분해서 1000자 내외로 분석해줘🖤</span>라고 요청한 후, 그 내용을 여기에 붙여넣어 주세요. 이 내용을 바탕으로 당신에 대한 퀴즈가 생성됩니다.
                             </p>
                             <textarea
                                 className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800 resize-y min-h-[150px] mb-6 shadow-sm bg-white" // 입력창 색상: bg-white 명시
@@ -610,17 +623,7 @@ const App = () => {
                                 </button>
                             </div>
                             <button
-                                onClick={() => {
-                                    setAppMode('create');
-                                    setPersonalityDescription('');
-                                    setGeneratedQuiz([]);
-                                    setTestTakerAnswers({});
-                                    setCompatibilityScore(null);
-                                    setCompatibilityMessage('');
-                                    setShareableLink('');
-                                    setQuizCreatorName(''); // 이름 초기화
-                                    setCurrentQuestionIndex(0); // 질문 인덱스 초기화
-                                }}
+                                onClick={createNewTest} // 새로운 테스트 만들기 함수 호출
                                 className="mt-8 w-full max-w-md bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-6 rounded-xl shadow-md transition duration-300 ease-in-out transform hover:scale-105 text-lg"
                             >
                                 새로운 테스트 만들기
@@ -630,9 +633,19 @@ const App = () => {
 
                     {appMode === 'test' && generatedQuiz.length > 0 && (
                         <div className="animate-fade-in px-6 py-8 sm:px-8 sm:py-10 md:px-12 md:py-14"> {/* 내부 콘텐츠 패딩 추가 */}
-                            {/* 질문 화면 상단바 (이미지 참고) */}
+                            {/* 질문 화면 상단바 (뒤로가기 버튼 기능 추가) */}
                             <div className="w-full flex justify-between items-center mb-8">
-                                <button className="text-gray-600 hover:text-gray-800 p-2 rounded-full transition duration-200">
+                                <button
+                                    onClick={() => {
+                                        if (currentQuestionIndex > 0) {
+                                            setCurrentQuestionIndex(prev => prev - 1); // 이전 질문으로 이동
+                                        } else {
+                                            // 첫 질문일 경우, create 모드로 돌아가 모든 상태 초기화
+                                            createNewTest(); // 새로운 테스트 만들기 함수 호출
+                                        }
+                                    }}
+                                    className="text-gray-600 hover:text-gray-800 p-2 rounded-full transition duration-200"
+                                >
                                     {/* 뒤로가기 아이콘 */}
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -716,8 +729,13 @@ const App = () => {
                                     </button>
                                 )}
                             </div>
-
-                            {/* 정답 보기 버튼 제거됨 */}
+                            {/* 내 테스트 만들기 버튼 추가 */}
+                            <button
+                                onClick={createNewTest}
+                                className="mt-4 w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-6 rounded-xl shadow-md transition duration-300 ease-in-out transform hover:scale-105 text-lg"
+                            >
+                                내 맞춤 테스트 만들기
+                            </button>
                         </div>
                     )}
 
@@ -749,17 +767,7 @@ const App = () => {
                                 </div>
                             </div>
                             <button
-                                onClick={() => {
-                                    setAppMode('create');
-                                    setPersonalityDescription('');
-                                    setGeneratedQuiz([]);
-                                    setTestTakerAnswers({});
-                                    setCompatibilityScore(null);
-                                    setCompatibilityMessage('');
-                                    setShareableLink('');
-                                    setQuizCreatorName(''); // 이름 초기화
-                                    setCurrentQuestionIndex(0); // 질문 인덱스 초기화
-                                }}
+                                onClick={createNewTest} // 새로운 테스트 만들기 함수 호출
                                 className="mt-8 bg-black hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-xl shadow-md transition duration-300 ease-in-out transform hover:scale-105 text-lg"
                             >
                                 내 맞춤 테스트 만들기
