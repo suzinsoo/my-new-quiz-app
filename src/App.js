@@ -304,7 +304,8 @@ const App = () => {
                 }
             };
 
-            // Gemini API 직접 호출 (Canvas 환경에서 사용)
+            // Canvas 환경에서 직접 Gemini API를 호출합니다.
+            // Vercel 배포 시에는 이 부분을 서버리스 엔드포인트('/api/generate-quiz') 호출로 변경해야 합니다.
             const apiKey = ""; // Canvas에서 자동으로 API 키를 주입합니다.
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
