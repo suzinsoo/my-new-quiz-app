@@ -68,13 +68,13 @@ const App = () => {
     // **참고: Canvas 환경에서는 __firebase_config 전역 변수를 통해 자동으로 주입됩니다.
     // Canvas 외부에서 배포 시에는 이 값을 사용하거나, 환경 변수로 관리하는 것을 권장합니다.**
     const userProvidedFirebaseConfig = {
-  apiKey: "AIzaSyB_I98alPy-nWuOxD6dHgtq6JgnUgoze5Q",
-  authDomain: "my-new-quiz-app-941ab.firebaseapp.com",
-  projectId: "my-new-quiz-app-941ab",
-  storageBucket: "my-new-quiz-app-941ab.firebasestorage.app",
-  messagingSenderId: "650675412112",
-  appId: "1:650675412112:web:274b95ded1af3565be8c15",
-  measurementId: "G-LE1STLTWVM"
+        apiKey: "AIzaSyB_I98alPy-nWuOxD6dHgtq6JgnUgoze5Q",
+        authDomain: "my-new-quiz-app-941ab.firebaseapp.com",
+        projectId: "my-new-quiz-app-941ab",
+        storageBucket: "my-new-quiz-app-941ab.firebasestorage.app",
+        messagingSenderId: "650675412112",
+        appId: "1:650675412112:web:274b95ded1af3565be8c15",
+        measurementId: "G-LE1STLTWVM"
     };
 
     // Canvas 환경에서 제공되는 전역 변수를 우선적으로 사용하고, 없으면 사용자 제공 값 사용
@@ -93,8 +93,8 @@ const App = () => {
     const [userId, setUserId] = useState(null);
     const [isAuthReady, setIsAuthReady] = useState(false); // Firebase 인증 준비 완료 여부
 
-    // 앱의 현재 모드를 관리 (생성, 테스트, 결과, 공유)
-    const [appMode, setAppMode] = useState('create'); // 'create', 'test', 'result', 'share'
+    // 앱의 현재 모드를 관리 (생성, 테스트, 결과, 퀴즈 생성 완료 후 선택)
+    const [appMode, setAppMode] = useState('create'); // 'create', 'test', 'result', 'quizGenerated'
     // URL에서 가져온 테스트 ID
     const [currentTestId, setCurrentTestId] = useState(null);
 
@@ -304,14 +304,13 @@ const App = () => {
                 }
             };
 
-            // **여기서 Gemini API 키를 직접 사용하는 대신, 서버리스 함수 엔드포인트를 호출합니다.**
-            // Vercel/Netlify에서 `/api/generate-quiz` 경로로 서버리스 함수를 배포할 예정입니다.
-            const apiUrl = '/api/generate-quiz'; // 서버리스 함수 엔드포인트
+            // 서버리스 함수 호출
+            // Vercel/Netlify 등에서 배포 시 이 경로에 Gemini API를 호출하는 서버리스 함수를 두어야 합니다.
+            const apiUrl = '/api/generate-quiz'; 
 
             console.log("Serverless Function API: Fetching quiz with prompt:", prompt); // API 호출 전 로그
             console.log("Serverless Function API: Payload:", payload); // API 호출 페이로드 로그
 
-            // 서버리스 함수 호출
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -330,7 +329,6 @@ const App = () => {
             const result = await response.json();
             console.log("Serverless Function API: Raw result:", result); // API 원본 결과 로그
 
-            // Gemini API 응답 파싱 및 유효성 검사
             // 서버리스 함수가 Gemini API의 결과를 그대로 반환한다고 가정합니다.
             if (result.candidates && result.candidates.length > 0 &&
                 result.candidates[0].content && result.candidates[0].content.parts &&
@@ -359,7 +357,7 @@ const App = () => {
                     const currentBaseUrl = window.location.origin + window.location.pathname;
                     setShareableLink(`${currentBaseUrl}?testId=${newTestId}`);
                     setCurrentTestId(newTestId); // 생성된 퀴즈의 ID로 설정
-                    setAppMode('test'); // 퀴즈 생성 후 바로 'test' 모드로 전환 (생성자가 자신의 퀴즈를 풀도록)
+                    setAppMode('quizGenerated'); // 퀴즈 생성 후 'quizGenerated' 모드로 전환
                     setIsCreator(true); // 생성자는 자신의 퀴즈를 풀 때 isCreator를 true로 설정
                     console.log("Shareable link generated:", `${currentBaseUrl}?testId=${newTestId}`);
                 } else {
@@ -548,7 +546,7 @@ const App = () => {
                                 maxLength={20}
                             />
                             <p className="text-lg text-center text-gray-700 mb-6">
-                                GPT에게 🖤'내 성격과 성향, 좋아하는 거 싫어하는 걸 구분해서 1000자 내외로 분석해줘'🖤라고 요청한 후, 그 내용을 여기에 붙여넣어 주세요. 이 내용을 바탕으로 당신에 대한 퀴즈가 생성됩니다.
+                                <span className="font-bold text-[#DB4455]">🖤GPT에게 내 성격과 성향, 좋아하는 거 싫어하는 걸 구분해서 1000자 내외로 분석해줘🖤</span>라고 요청한 후, 그 내용을 여기에 붙여넣어 주세요. 이 내용을 바탕으로 당신에 대한 퀴즈가 생성됩니다.
                             </p>
                             <textarea
                                 className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800 resize-y min-h-[150px] mb-6 shadow-sm bg-white" // 입력창 색상: bg-white 명시
@@ -579,26 +577,38 @@ const App = () => {
                         </div>
                     )}
 
-                    {appMode === 'share' && shareableLink && ( // 'share' 모드 추가
-                        <div className="animate-fade-in px-6 py-8 sm:px-8 sm:py-10 md:px-12 md:py-14"> {/* 내부 콘텐츠 패딩 추가 */}
-                            <h2 className="text-3xl font-bold text-[#DB4455] mb-4"> {/* 색상 변경 */}
+                    {appMode === 'quizGenerated' && shareableLink && ( // 'quizGenerated' 모드 추가
+                        <div className="animate-fade-in px-6 py-8 sm:px-8 sm:py-10 md:px-12 md:py-14 flex flex-col items-center text-center"> {/* 내부 콘텐츠 패딩 추가 및 중앙 정렬 */}
+                            <h2 className="text-3xl font-bold text-[#DB4455] mb-4">
                                 🎉 퀴즈가 성공적으로 생성되었습니다! 🎉
                             </h2>
                             <p className="text-lg text-gray-700 mb-6">
                                 친구들에게 이 링크를 공유하여 나를 잘 알고있는지 시험해 보세요.
                             </p>
-                            <div className="bg-gray-100 p-4 rounded-lg border border-gray-200 break-all mb-6">
+                            <div className="bg-gray-100 p-4 rounded-lg border border-gray-200 break-all mb-6 w-full max-w-md"> {/* 너비 제한 추가 */}
                                 <p className="font-mono text-sm text-gray-800">{shareableLink}</p>
                             </div>
-                            <button
-                                onClick={copyShareLink}
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-lg"
-                            >
-                                <svg className="w-6 h-6 mr-2 inline-block" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M16 1H4C2.9 1 2 1.9 2 3v14h2V3h12V1zm3 4H8C6.9 5 6 5.9 6 7v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path>
-                                </svg>
-                                링크 복사
-                            </button>
+                            <div className="flex flex-col sm:flex-row justify-center gap-4 w-full max-w-md"> {/* 버튼 그룹 너비 제한 */}
+                                <button
+                                    onClick={copyShareLink}
+                                    className="flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-lg flex-1"
+                                >
+                                    <svg className="w-6 h-6 mr-2 inline-block" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M16 1H4C2.9 1 2 1.9 2 3v14h2V3h12V1zm3 4H8C6.9 5 6 5.9 6 7v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path>
+                                    </svg>
+                                    링크 복사
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setAppMode('test');
+                                        setCurrentQuestionIndex(0); // 퀴즈 풀기 시작 시 첫 질문으로
+                                        setTestTakerAnswers({}); // 답변 초기화
+                                    }}
+                                    className="flex items-center justify-center bg-black hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-lg flex-1"
+                                >
+                                    내 문제 풀어보기
+                                </button>
+                            </div>
                             <button
                                 onClick={() => {
                                     setAppMode('create');
@@ -611,7 +621,7 @@ const App = () => {
                                     setQuizCreatorName(''); // 이름 초기화
                                     setCurrentQuestionIndex(0); // 질문 인덱스 초기화
                                 }}
-                                className="mt-4 w-full bg-black hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-lg"
+                                className="mt-8 w-full max-w-md bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-6 rounded-xl shadow-md transition duration-300 ease-in-out transform hover:scale-105 text-lg"
                             >
                                 새로운 테스트 만들기
                             </button>
@@ -640,20 +650,20 @@ const App = () => {
                                 Q{currentQuestionIndex + 1}. {generatedQuiz[currentQuestionIndex].question}
                             </p>
                             {/* 질문별 이미지 (사용자님이 제공한 이미지) 제거됨 */}
-<div className="flex justify-center mb-6">
-    <img
-        src="https://i.ibb.co/kVdsSm6B/002.png"
-        alt="질문 관련 이미지"
-        className="w-1/4 h-auto object-contain" // ✅ 크기 작게, 비율 유지
-        style={{ boxShadow: 'none', backgroundColor: 'transparent' }} // ✅ 그림자 제거 + 배경 투명
-    />
-</div>
+                            <div className="flex justify-center mb-6">
+                                <img
+                                    src="https://i.ibb.co/kVdsSm6B/002.png"
+                                    alt="질문 관련 이미지"
+                                    className="w-1/4 h-auto object-contain" // ✅ 크기 작게, 비율 유지
+                                    style={{ boxShadow: 'none', backgroundColor: 'transparent' }} // ✅ 그림자 제거 + 배경 투명
+                                />
+                            </div>
                             <div className="space-y-4">
                                 {generatedQuiz[currentQuestionIndex].options.map((option, optIndex) => (
                                     <label
                                         key={optIndex}
                                         className={`flex items-center cursor-pointer p-3 rounded-xl border-2 transition duration-200
-                                                    ${testTakerAnswers[currentQuestionIndex] === String(optIndex + 1) ? 'border-purple-500 bg-purple-50 shadow-md' : 'border-gray-300 hover:border-purple-400 hover:bg-gray-50'}`}
+                                                ${testTakerAnswers[currentQuestionIndex] === String(optIndex + 1) ? 'border-purple-500 bg-purple-50 shadow-md' : 'border-gray-300 hover:border-purple-400 hover:bg-gray-50'}`}
                                     >
                                         <input
                                             type="radio"
@@ -760,7 +770,7 @@ const App = () => {
                     {showResultModal && (
                         <Modal onClose={closeResultModal}>
                             <h3 className="text-2xl font-bold text-gray-800 mb-4 text-center">분석 결과!</h3>
-                            <p className="text-5xl font-extrabold text-[#FC5230] mb-4 text-center"> {/* 색상 변경 */}
+                            <p className="text-5xl font-extrabold text-[#FC5230] mb-4 text-center">
                                 {compatibilityScore}점!
                             </p>
                             <p className="text-lg text-gray-700 mb-6 text-center">
