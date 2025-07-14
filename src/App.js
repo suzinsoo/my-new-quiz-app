@@ -278,7 +278,8 @@ const App = () => {
         try {
             // Gemini API 호출을 위한 프롬프트 구성
             // 'compatibleAnswer'가 무작위로 선택되도록 명시적으로 지시 추가
-            const prompt = `사용자 "${quizCreatorName}"의 성격과 성향, 좋아하는 것, 싫어하는 것을 구분해서 1000자 내외로 분석한 내용입니다: "${personalityDescription}". 이 내용을 바탕으로 "${quizCreatorName}"를 맞춰보는 재미있고 흥미로운 객관식 퀴즈 질문 10개를 생성해 주세요. 각 질문은 4개의 보기(1, 2, 3, 4)를 포함해야 하며, **정답(compatibleAnswer)은 4개의 보기 중 무작위로 선택되어야 합니다. 나머지 3개의 오답은 정답과 어느 정도 관련이 있으면서도 명확히 오답인, 그럴듯하지만 사용자 "${quizCreatorName}"의 특징과는 구별되는 헷갈리지 않는 내용으로 구성하여 변별력을 높여주세요.** 정답(compatibleAnswer)은 4개의 보기 중 무작위로 선택되어야 합니다. 출력은 'question', 'options', 'compatibleAnswer' 필드를 가진 JSON 객체 배열이어야 합니다. 'compatibleAnswer'는 '1', '2', '3', '4' 중 하나여야 합니다.`;
+            // 오답은 '그럴듯하지만 명확히 오답인 내용'으로 구성하여 변별력 개선 지시 추가
+            const prompt = `사용자 "${quizCreatorName}"의 성격과 성향, 좋아하는 것, 싫어하는 것을 구분해서 1000자 내외로 분석한 내용입니다: "${personalityDescription}". 이 내용을 바탕으로 "${quizCreatorName}"를 맞춰보는 재미있고 흥미로운 객관식 퀴즈 질문 10개를 생성해 주세요. 각 질문은 4개의 보기를 포함해야 하며, 정답(compatibleAnswer)은 4개의 보기 중 정답 보기에 해당하는 **텍스트 내용**이어야 합니다. 나머지 3개의 오답은 정답과 어느 정도 관련이 있으면서도 명확히 오답인, 그럴듯하지만 사용자 "${quizCreatorName}"의 특징과는 구별되는 헷갈리지 않는 내용으로 구성하여 변별력을 높여주세요. 출력은 'question', 'options', 'compatibleAnswer' 필드를 가진 JSON 객체 배열이어야 합니다.`;
 
             let chatHistory = [];
             chatHistory.push({ role: "user", parts: [{ text: prompt }] });
@@ -297,7 +298,7 @@ const App = () => {
                                     "type": "ARRAY",
                                     "items": { "type": "STRING" }
                                 },
-                                "compatibleAnswer": { "type": "STRING" }
+                                "compatibleAnswer": { "type": "STRING" } // compatibleAnswer는 이제 텍스트 내용
                             },
                             "propertyOrdering": ["question", "options", "compatibleAnswer"]
                         }
@@ -339,7 +340,7 @@ const App = () => {
                 const parsedQuiz = JSON.parse(jsonText);
 
                 // 생성된 퀴즈가 10개 질문을 포함하고 올바른 형식인지 검증
-                if (Array.isArray(parsedQuiz) && parsedQuiz.length === 10 && parsedQuiz.every(q => q.question && Array.isArray(q.options) && q.options.length === 4 && q.compatibleAnswer && ['1', '2', '3', '4'].includes(q.compatibleAnswer))) {
+                if (Array.isArray(parsedQuiz) && parsedQuiz.length === 10 && parsedQuiz.every(q => q.question && Array.isArray(q.options) && q.options.length === 4 && q.compatibleAnswer && typeof q.compatibleAnswer === 'string')) { // compatibleAnswer 타입 검증 변경
                     setGeneratedQuiz(parsedQuiz);
                     console.log("Generated quiz parsed and validated:", parsedQuiz);
 
@@ -379,15 +380,16 @@ const App = () => {
 
     // 테스트 응답 처리
     const handleAnswerChange = useCallback((questionIndex, selectedValue) => {
+        // selectedValue는 이제 라디오 버튼의 실제 텍스트 값입니다.
         setTestTakerAnswers(prev => {
             const newAnswers = {
                 ...prev,
-                [questionIndex]: selectedValue
+                [questionIndex]: selectedValue // 실제 텍스트 값을 저장
             };
             console.log(`Answer for Q${questionIndex + 1} changed to: ${selectedValue}. Current answers:`, newAnswers); // Debug log
             return newAnswers;
         });
-    }, []);
+    }, []); // generatedQuiz를 의존성 배열에서 제거 (필요 없음)
 
     // 궁합 점수 계산
     const calculateCompatibility = useCallback(() => {
@@ -403,7 +405,7 @@ const App = () => {
         // 정답과 사용자의 답변 비교하여 점수 계산
         generatedQuiz.forEach((quizItem, index) => {
             const userAnswer = testTakerAnswers[index];
-            const correctAnswer = quizItem.compatibleAnswer;
+            const correctAnswer = quizItem.compatibleAnswer; // 이제 correctAnswer는 텍스트 내용
             console.log(`Q${index + 1}: User answer: ${userAnswer}, Correct answer: ${correctAnswer}. Match: ${userAnswer === correctAnswer}`);
             if (userAnswer === correctAnswer) {
                 correctAnswers++;
@@ -460,13 +462,36 @@ const App = () => {
         if (shareableLink) {
             const tempInput = document.createElement('textarea');
             tempInput.value = shareableLink;
+            // 요소를 화면 밖으로 배치하고 투명하게 만들어 사용자에게 보이지 않게 합니다.
+            tempInput.style.position = 'absolute';
+            tempInput.style.left = '-9999px';
+            tempInput.style.top = '0px';
+            tempInput.style.opacity = '0';
             document.body.appendChild(tempInput);
-            tempInput.select(); // Corrected: select the textarea itself
-            document.execCommand('copy');
-            document.body.removeChild(tempInput);
-            setShowCopySuccessMessage(true);
-            setTimeout(() => setShowCopySuccessMessage(false), 3000); // Hide after 3 seconds
-            console.log("Share link copied to clipboard:", shareableLink); // Debug log
+            tempInput.focus(); // 요소에 포커스를 줍니다.
+            tempInput.select(); // 텍스트를 선택합니다.
+            // iOS 등 일부 모바일 환경에서 전체 텍스트 선택을 위해 사용합니다.
+            tempInput.setSelectionRange(0, tempInput.value.length);
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    setShowCopySuccessMessage(true);
+                    setTimeout(() => setShowCopySuccessMessage(false), 3000); // 3초 후 메시지 숨김
+                    console.log("Share link copied to clipboard:", shareableLink); // 디버그 로그
+                } else {
+                    // 복사 실패 시 오류 메시지
+                    setError('링크 복사에 실패했습니다. 브라우저 설정을 확인해주세요.');
+                    console.error("Failed to copy using document.execCommand('copy') - returned false");
+                }
+            } catch (err) {
+                // execCommand 실행 중 오류 발생 시
+                setError('링크 복사 중 오류가 발생했습니다.');
+                console.error("Error during document.execCommand('copy'):", err);
+            } finally {
+                // 임시로 생성한 textarea 요소를 제거합니다.
+                document.body.removeChild(tempInput);
+            }
         }
     }, [shareableLink]);
 
@@ -679,14 +704,14 @@ const App = () => {
                                     <label
                                         key={optIndex}
                                         className={`flex items-center cursor-pointer p-3 rounded-xl border-2 transition duration-200
-                                                ${testTakerAnswers[currentQuestionIndex] === String(optIndex + 1) ? 'border-purple-500 bg-purple-50 shadow-md' : 'border-gray-300 hover:border-purple-400 hover:bg-gray-50'}`}
+                                                ${testTakerAnswers[currentQuestionIndex] === option ? 'border-purple-500 bg-purple-50 shadow-md' : 'border-gray-300 hover:border-purple-400 hover:bg-gray-50'}`}
                                     >
                                         <input
                                             type="radio"
                                             name={`question-${currentQuestionIndex}`}
-                                            value={String(optIndex + 1)} // 1, 2, 3, 4로 값 설정
-                                            checked={testTakerAnswers[currentQuestionIndex] === String(optIndex + 1)}
-                                            onChange={(e) => handleAnswerChange(currentQuestionIndex, e.target.value)}
+                                            value={option} // 선택된 보기의 실제 텍스트 값을 value로 설정
+                                            checked={testTakerAnswers[currentQuestionIndex] === option} // 선택된 텍스트 값과 비교
+                                            onChange={(e) => handleAnswerChange(currentQuestionIndex, e.target.value)} // e.target.value (텍스트 값) 직접 전달
                                             className="form-radio h-5 w-5 text-purple-600 transition duration-150 ease-in-out"
                                         />
                                         <span className="ml-3 text-gray-800 text-base md:text-lg">
@@ -712,7 +737,7 @@ const App = () => {
                                             // 현재 질문에 답변했을 때만 다음으로 넘어가도록
                                             if (testTakerAnswers.hasOwnProperty(currentQuestionIndex)) {
                                                 setError(''); // 오류 메시지 초기화
-                                                setCurrentQuestionIndex(prev => prev + 1); // <-- 여기를 prev + 1로 수정
+                                                setCurrentQuestionIndex(prev => prev + 1);
                                             } else {
                                                 setError('현재 질문에 답변을 선택해주세요.');
                                             }
