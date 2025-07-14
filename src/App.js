@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, Component } from 'react';
+import React, { useState, useEffect, useCallback, Component, useRef } from 'react';
 
 // Firebase SDK를 직접 import하여 사용합니다.
 // 필요한 함수들을 명시적으로 가져옵니다.
@@ -116,6 +116,10 @@ const App = () => {
     const [compatibilityScore, setCompatibilityScore] = useState(null);
     const [compatibilityMessage, setCompatibilityMessage] = useState('');
     const [showResultModal, setShowResultModal] = useState(false); // 결과 모달 표시 여부
+
+    // BGM 관련 상태
+    const audioRef = useRef(null); // audio 요소에 접근하기 위한 ref
+    const [isPlaying, setIsPlaying] = useState(false); // BGM 재생 상태
 
     // 한국어 조사 '을/를' 선택 헬퍼 함수 (현재 사용 안 함, 필요 시 활용)
     const getKoreanObjectParticle = (name) => {
@@ -247,6 +251,32 @@ const App = () => {
         fetchQuizData();
     }, [appMode, currentTestId, db, isAuthReady, userId, appId]); // userId, appId를 의존성 배열에 추가
 
+    // BGM 재생/일시정지 토글 함수 (아이콘 클릭 시 재생/정지)
+    const togglePlayPause = useCallback(() => {
+        if (audioRef.current) {
+            if (isPlaying) {
+                audioRef.current.pause();
+            } else {
+                audioRef.current.play().catch(e => console.error("BGM 재생 실패:", e)); // 자동 재생 정책으로 인한 오류 처리
+            }
+            setIsPlaying(!isPlaying);
+        }
+    }, [isPlaying]);
+
+    // 컴포넌트 마운트 시 BGM 자동 재생 시도 및 재생 상태 업데이트
+    useEffect(() => {
+        if (audioRef.current) {
+            // 초기 볼륨 설정 (예: 0.3)
+            audioRef.current.volume = 0.3; 
+            audioRef.current.play()
+                .then(() => setIsPlaying(true))
+                .catch(e => {
+                    console.warn("BGM 자동 재생이 차단되었습니다. 사용자 상호작용이 필요할 수 있습니다.", e);
+                    setIsPlaying(false); // 재생 실패 시 상태 업데이트
+                });
+        }
+    }, []); // 빈 배열은 컴포넌트가 마운트될 때 한 번만 실행됨
+
     // 퀴즈 생성 함수 (서버리스 API 호출 및 Firestore 저장)
     const generateQuiz = async () => {
         // 입력 유효성 검사
@@ -279,7 +309,7 @@ const App = () => {
             // Gemini API 호출을 위한 프롬프트 구성
             // 'compatibleAnswer'가 무작위로 선택되도록 명시적으로 지시 추가
             // 오답은 '그럴듯하지만 명확히 오답인 내용'으로 구성하여 변별력 개선 지시 추가
-            const prompt = `사용자 "${quizCreatorName}"의 성격과 성향, 좋아하는 것, 싫어하는 것을 구분해서 1000자 내외로 분석한 내용입니다: "${personalityDescription}". 이 내용을 바탕으로 "${quizCreatorName}"를 맞춰보는 재미있고 흥미로운 객관식 퀴즈 질문 10개를 생성해 주세요. 각 질문은 4개의 보기를 포함해야 하며, 정답(compatibleAnswer)은 4개의 보기 중 정답 보기에 해당하는 **텍스트 내용**이어야 합니다. 나머지 3개의 오답은 정답과 어느 정도 관련이 있으면서도 명확히 오답인, 그럴듯하지만 사용자 "${quizCreatorName}"의 특징과는 구별되는 헷갈리지 않는 내용으로 구성하여 변별력을 높여주세요. 출력은 'question', 'options', 'compatibleAnswer' 필드를 가진 JSON 객체 배열이어야 합니다.`;
+            const prompt = `사용자 "${quizCreatorName}"의 성격과 성향, 좋아하는 것, 싫어하는 것을 구분해서 1000자 내외로 분석한 내용입니다: "${personalityDescription}". 이 내용을 바탕으로 "${quizCreatorName}"를 맞춰보는 재미있고 흥미로운 객관식 퀴즈 질문 10개를 생성해 주세요. 각 질문은 4개의 보기를 포함해야 하며, 정답(compatibleAnswer)은 4개의 보기 중 정답 보기에 해당하는 **텍스트 내용**이어야 합니다. 나머지 3개의 오답은 정답과 어느 정도 관련이 있으면서도 명확히 오답인, 그럴듯하지만 헷갈리지 않는 내용으로 구성하여 변별력을 높여주세요. 출력은 'question', 'options', 'compatibleAnswer' 필드를 가진 JSON 객체 배열이어야 합니다.`;
 
             let chatHistory = [];
             chatHistory.push({ role: "user", parts: [{ text: prompt }] });
@@ -367,7 +397,7 @@ const App = () => {
                     console.log("Serverless Function API: Parsed quiz format mismatch:", parsedQuiz); // Debug log
                 }
             } else {
-                setError('퀴즈 생성에 실패했습니다. 유효한 응답을 받지 못했습니다.');
+                setError('퀴즈 생성에 실패했습니다. 유효한 응답을 받지 불구하고.');
                 console.log("Serverless Function API: No valid candidates found in response."); // Debug log
             }
         } catch (err) {
@@ -389,7 +419,7 @@ const App = () => {
             console.log(`Answer for Q${questionIndex + 1} changed to: ${selectedValue}. Current answers:`, newAnswers); // Debug log
             return newAnswers;
         });
-    }, []); // generatedQuiz를 의존성 배열에서 제거 (필요 없음)
+    }, []); 
 
     // 궁합 점수 계산
     const calculateCompatibility = useCallback(() => {
@@ -535,6 +565,21 @@ const App = () => {
                 />
 
                 <div className="bg-white w-full h-full min-h-screen"> {/* 메인 흰색 컨테이너, 그림자/테두리/둥근 모서리 제거, 화면 꽉 채우기 */}
+                    {/* BGM 워터마크 아이콘을 포함하는 투명 바 */}
+                    <div
+                        className="fixed top-4 right-4 z-20 flex items-center justify-center p-2 rounded-full bg-gray-100 bg-opacity-70 shadow-md cursor-pointer"
+                        onClick={togglePlayPause} // 바 클릭 시 BGM 재생/정지 토글
+                    >
+                        <img
+                            src={isPlaying ? "https://i.ibb.co/wNwfKbjh/Chat-GPT-Image-2025-7-14-02-32-46.png" : "https://i.ibb.co/s9krN3Td/Chat-GPT-Image-2025-7-14-02-34-45.png"}
+                            alt={isPlaying ? "BGM 재생 중" : "BGM 정지됨"}
+                            className="h-6 w-6 object-contain" // 이미지 크기 조정
+                        />
+                    </div>
+
+                    {/* BGM 오디오 태그 (숨겨져 있음) */}
+                    <audio ref={audioRef} src="https://www.bensound.com/bensound-music/bensound-ukulele.mp3" loop preload="auto" /> {/* 예시 BGM URL */}
+
                     {/* 사용자 ID 표시 */}
                     {isAuthReady && userId && (
                         <p className="text-sm text-gray-600 text-center mb-4 px-4 pt-4"> {/* 패딩 추가 */}
