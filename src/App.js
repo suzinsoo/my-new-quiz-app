@@ -599,7 +599,7 @@ const App = () => {
                         onClick={togglePlayPause} // 바 클릭 시 BGM 재생/정지 토글
                     >
                         <img
-                            src={isPlaying ? "https://i.ibb.co/wNwfKbjh/Chat-GPT-Image-2025-7-14-02-32-46.png" : "https://i.ibb.co/s9krN3Td/Chat-GPT-Image-2025-7-14-02-34-45.png"}
+                            src={isPlaying ? "https://i.ibb.co/xKm9SVKJ/Chat-GPT-Image-2025-7-15-07-35-34.png" : "https://i.ibb.co/s9krN3Td/Chat-GPT-Image-2025-7-14-02-34-45.png"}
                             alt={isPlaying ? "BGM 재생 중" : "BGM 정지됨"}
                             className="h-6 w-6 object-contain" // 이미지 크기 조정
                         />
