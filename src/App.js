@@ -321,8 +321,8 @@ const App = () => {
 
 각 질문은 다음 조건을 따라주세요:
 - **정답은 해당 인물의 성격/취향과 확실히 부합해야 하며**, 4개의 보기 중 하나로 무작위 위치에 배치해주세요.
-- **오답 3개는 겉보기엔 그럴싸하지만 실제 성격/취향과는 명확히 구별되는 내용**이어야 합니다.
-- 너무 극단적이거나 말이 안 되는 오답은 피하고, **정답과 구분이 가능한 수준의 유사한 보기**로 구성해 주세요. (예: “혼자 있는 걸 좋아함”이 정답일 경우, 오답은 “사람들과 어울리는 걸 좋아함”, “무리에서 리더 역할을 자주 맡음”처럼 구성)
+- **오답 3개는 겉보기엔 그럴싸하지만 실제 성격/취향과는 구별되는 내용**이어야 합니다.
+- 너무 극단적이거나 말이 안 되는 오답은 피하고, **정답과 구분이 가능한 수준의 유사한 보기**로 구성해 주세요.
 
 결과는 다음과 같은 JSON 배열 형식으로 출력해 주세요:
 
@@ -623,7 +623,7 @@ const App = () => {
                     {/* 클립보드 복사 성공 메시지 */}
                     {showCopySuccessMessage && (
                         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-fade-in-up">
-                            링크가 클립보드에 복사되었습니다!
+                            복사 완료!
                         </div>
                     )}
 
@@ -642,7 +642,7 @@ const App = () => {
                                 </div>
 
                                 {/* 메인 타이틀 이미지 (사용자님이 제공한 이미지) */}
-                                <img src="https://i.ibb.co/qM7wL9Zd/001-9.jpg" alt="나를 맞춰봐 TEST" className="w-full h-auto mx-auto mb-4 object-contain" />
+                                <img src="https://i.ibb.co/cX8W3xGb/001.png" alt="나를 맞춰봐 TEST" className="w-full h-auto mx-auto mb-4 object-contain" />
                             </div>
 
                             <p className="text-lg text-center text-gray-700 mb-6">
@@ -653,7 +653,7 @@ const App = () => {
                                 className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800 mb-6 shadow-sm bg-white" // 입력창 색상: bg-white 명시
                                 value={quizCreatorName}
                                 onChange={(e) => setQuizCreatorName(e.target.value)}
-                                placeholder="예: 수진"
+                                placeholder="예: 햄스터"
                                 maxLength={20}
                             />
                             {/* GPT에게 문구를 밖으로 빼내어 강조 (줄 바꿈 없이) */}
@@ -665,7 +665,7 @@ const App = () => {
                                 rows="7"
                                 value={personalityDescription}
                                 onChange={(e) => setPersonalityDescription(e.target.value)}
-                                placeholder="예: 저는 민트 초코를 좋아하고, 좋아하는 게 있으면 밤을 샐 수 있을 정도로 열정을 가지고 있습니다. 원숭이에 대한 이상한 집착이 있으며 햄스터를 좋아합니다. 샤를 르끌레르는 제 남자친구입니다." // 플레이스홀더 문구 수정
+                                placeholder="예: 저는 민트 초코를 좋아하고, 좋아하는 게 있으면 밤을 샐 수 있을 정도로 열정을 가지고 있습니다. 원숭이에 대한 이상한 집착이 있으며 햄스터를 좋아합니다." // 플레이스홀더 문구 수정
                                 maxLength={1000}
                             ></textarea>
                             <p className="text-right text-sm text-gray-500 mb-6">
