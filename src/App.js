@@ -642,7 +642,7 @@ const App = () => {
                                 </div>
 
                                 {/* 메인 타이틀 이미지 (사용자님이 제공한 이미지) */}
-                                <img src="https://i.ibb.co/cX8W3xGb/001.png" alt="나를 맞춰봐 TEST" className="w-full h-auto mx-auto mb-4 object-contain" />
+                                <img src="https://i.ibb.co/gMMKT9WN/001-10.jpg" alt="나를 맞춰봐 TEST" className="w-full h-auto mx-auto mb-4 object-contain" />
                             </div>
 
                             <p className="text-lg text-center text-gray-700 mb-6">
