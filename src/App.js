@@ -309,7 +309,7 @@ const App = () => {
             // Gemini API 호출을 위한 프롬프트 구성
             // 'compatibleAnswer'가 무작위로 선택되도록 명시적으로 지시 추가
             // 오답은 '그럴듯하지만 명확히 오답인 내용'으로 구성하여 변별력 개선 지시 추가
-            const prompt = `사용자 "${quizCreatorName}"의 성격과 성향, 좋아하는 것, 싫어하는 것을 구분해서 1000자 내외로 분석한 내용입니다: "${personalityDescription}". 이 내용을 바탕으로 "${quizCreatorName}"를 맞춰보는 재미있고 흥미로운 객관식 퀴즈 질문 10개를 생성해 주세요. 각 질문은 4개의 보기를 포함해야 하며, 정답(compatibleAnswer)은 4개의 보기 중 정답 보기에 해당하는 **텍스트 내용**이어야 합니다. 나머지 3개의 오답은 정답과 어느 정도 관련이 있으면서도 명확히 오답인, 그럴듯하지만 헷갈리지 않는 내용으로 구성하여 변별력을 높여주세요. 출력은 'question', 'options', 'compatibleAnswer' 필드를 가진 JSON 객체 배열이어야 합니다.`;
+            const prompt = `사용자 "${quizCreatorName}"의 성격과 성향, 좋아하는 것, 싫어하는 것을 구분해서 1000자 내외로 분석한 내용입니다: "${personalityDescription}". 이 내용을 바탕으로 "${quizCreatorName}"를 맞춰보는 재미있고 흥미로운 객관식 퀴즈 질문 10개를 생성해 주세요. 각 질문은 4개의 보기(1, 2, 3, 4)를 포함해야 하며, **정답(compatibleAnswer)은 4개의 보기 중 무작위로 선택되어야 합니다. 나머지 3개의 오답은 정답과 어느 정도 관련이 있으면서도 명확히 오답인, 그럴듯하지만 사용자 "${quizCreatorName}"의 특징과는 구별되는 헷갈리지 않는 내용으로 구성하여 변별력을 높여주세요.** 정답(compatibleAnswer)은 4개의 보기 중 무작위로 선택되어야 합니다. 출력은 'question', 'options', 'compatibleAnswer' 필드를 가진 JSON 객체 배열이어야 합니다.`;
 
             let chatHistory = [];
             chatHistory.push({ role: "user", parts: [{ text: prompt }] });
